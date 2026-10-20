@@ -1,0 +1,9 @@
+# Build output .NET
+bin/
+obj/
+
+# Cache 
+.vs/
+*.user
+*.suo
+*.sln.docstates

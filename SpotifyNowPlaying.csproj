@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- Target Windows 10/11 build 19041+ để tích hợp trực tiếp Windows SDK WinRT APIs mà không cần thêm package ngoài -->
+    <!-- <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework> -->
+    <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- Cho phép sử dụng System.Windows.Forms.NotifyIcon cho System Tray siêu nhẹ -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>SpotifyNowPlaying</RootNamespace>
+    <AssemblyName>SpotifyNowPlaying</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Tự động copy config.json ra thư mục build -->
+    <None Update="config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
