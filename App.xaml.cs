@@ -115,10 +115,14 @@ public partial class App : System.Windows.Application
         var reloadItem = new Forms.ToolStripMenuItem("Reload Config", null, (s, e) =>
         {
             _configService?.LoadConfig();
-            _notifyIcon?.ShowBalloonTip(1500, "Spotify Overlay", "Config đã được nạp lại thành công!", Forms.ToolTipIcon.Info);
+            var cfg = _configService?.CurrentConfig;
+            string details = cfg != null 
+                ? $"({cfg.Style.Width}x{cfg.Style.Height}, R-Left:{cfg.Style.GetLeftRadius()}, R-Right:{cfg.Style.GetRightRadius()}, OffsetX:{cfg.Position.OffsetX})"
+                : "";
+            _notifyIcon?.ShowBalloonTip(1500, "Spotify Overlay", $"Config đã được nạp lại thành công!\n{details}", Forms.ToolTipIcon.Info);
         });
 
-        var testToastItem = new Forms.ToolStripMenuItem("Test Toast", null, (s, e) =>
+        var testToastItem = new Forms.ToolStripMenuItem("Test Toast (Mặc định)", null, (s, e) =>
         {
             Dispatcher.Invoke(() =>
             {
@@ -128,6 +132,20 @@ public partial class App : System.Windows.Application
                     Artist = "Rick Astley",
                     AlbumTitle = "Whenever You Need Somebody",
                     Thumbnail = null
+                });
+            });
+        });
+
+        var testArtworkToastItem = new Forms.ToolStripMenuItem("Test Toast (Album Art)", null, (s, e) =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                _mainWindow?.ShowTrack(new TrackInfo
+                {
+                    Title = "Blinding Lights",
+                    Artist = "The Weeknd",
+                    AlbumTitle = "After Hours",
+                    Thumbnail = CreateSampleCoverBitmap()
                 });
             });
         });
@@ -185,6 +203,7 @@ public partial class App : System.Windows.Application
 
         contextMenu.Items.Add(reloadItem);
         contextMenu.Items.Add(testToastItem);
+        contextMenu.Items.Add(testArtworkToastItem);
         contextMenu.Items.Add(new Forms.ToolStripSeparator());
         contextMenu.Items.Add(_syncMenuItem);
         contextMenu.Items.Add(_startupMenuItem);
@@ -192,6 +211,31 @@ public partial class App : System.Windows.Application
         contextMenu.Items.Add(exitItem);
 
         _notifyIcon.ContextMenuStrip = contextMenu;
+    }
+
+    private static System.Windows.Media.Imaging.BitmapSource CreateSampleCoverBitmap()
+    {
+        int width = 112;
+        int height = 112;
+        var visual = new System.Windows.Media.DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            // Gradient nghệ thuật màu đỏ hoàng hôn sang tím sẫm
+            var grad = new System.Windows.Media.LinearGradientBrush(
+                System.Windows.Media.Color.FromRgb(215, 45, 55),
+                System.Windows.Media.Color.FromRgb(95, 20, 65),
+                45.0);
+            dc.DrawRectangle(grad, null, new Rect(0, 0, width, height));
+
+            // Đĩa than nghệ thuật
+            dc.DrawEllipse(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(160, 25, 15, 22)), null, new System.Windows.Point(56, 56), 34, 34);
+            dc.DrawEllipse(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(220, 240, 180, 50)), null, new System.Windows.Point(56, 56), 11, 11);
+        }
+
+        var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(width, height, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+        rtb.Render(visual);
+        rtb.Freeze();
+        return rtb;
     }
 
     private void ShowInitialStandbyNotice()
@@ -313,6 +357,9 @@ public partial class App : System.Windows.Application
         _mediaService?.Disconnect();
         _mediaService = null;
 
+        _configService?.Dispose();
+        _configService = null;
+
         if (_notifyIcon != null)
         {
             _notifyIcon.Visible = false;
@@ -336,6 +383,7 @@ public partial class App : System.Windows.Application
     {
         _lifecycleService?.Dispose();
         _mediaService?.Disconnect();
+        _configService?.Dispose();
 
         if (_notifyIcon != null)
         {

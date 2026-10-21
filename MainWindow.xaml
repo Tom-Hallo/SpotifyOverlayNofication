@@ -21,7 +21,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="17" Padding="6">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="20" Padding="7">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -46,7 +46,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="10" Padding="4">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="14" Padding="5">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -68,113 +68,178 @@
             <TranslateTransform x:Name="WindowTranslateTransform" X="0" Y="0"/>
         </Grid.RenderTransform>
 
-        <!-- Card nền chính với đổ bóng mềm mại -->
-        <Border x:Name="CardBorder" Margin="8" Background="#E6181818" CornerRadius="12" ClipToBounds="True">
+        <!-- Card nền chính: bo góc bên trái và bên phải điều chỉnh độc lập qua config -->
+        <Border x:Name="CardBorder" Margin="14,8,0,8" Background="Transparent" CornerRadius="24,0,0,24">
             <Border.Effect>
-                <DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="3" Opacity="0.5" Color="#000000"/>
+                <DropShadowEffect x:Name="CardDropShadow" BlurRadius="20" Direction="210" ShadowDepth="4" Opacity="0.38" Color="#000000"/>
             </Border.Effect>
 
-            <Grid>
-                <!-- Dải màu Accent ở cạnh trái -->
-                <Border x:Name="AccentBar" HorizontalAlignment="Left" Width="3.5" Background="#1DB954" CornerRadius="2"/>
+            <!-- Lớp kính Glassmorphism: Nền Gradient gán trực tiếp vào Border.Background để uốn cong hoàn hảo theo CornerRadius -->
+            <Border x:Name="GlassCard" CornerRadius="24,0,0,24" ClipToBounds="True" BorderThickness="1.2,1.2,0,1.2">
+                <Border.Background>
+                    <LinearGradientBrush x:Name="BgLinearBrush" StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop x:Name="BgGradStop0" Color="#22252C" Offset="0.0"/>
+                        <GradientStop x:Name="BgGradStop1" Color="#17181D" Offset="0.55"/>
+                        <GradientStop x:Name="BgGradStop2" Color="#101115" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Border.Background>
 
-                <!-- Nội dung thông báo -->
-                <Grid Margin="12,10,12,10">
-                    <Grid.ColumnDefinitions>
-                        <!-- Ảnh bìa Thumbnail -->
-                        <ColumnDefinition Width="Auto"/>
-                        <!-- Thông tin bài hát -->
-                        <ColumnDefinition Width="*"/>
-                        <!-- Nút điều khiển -->
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <Border.BorderBrush>
+                    <LinearGradientBrush x:Name="GlassBorderBrush" StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop x:Name="BorderGradStop0" Color="#38FFFFFF" Offset="0.0"/>
+                        <GradientStop Color="#18FFFFFF" Offset="0.5"/>
+                        <GradientStop x:Name="BorderGradStop1" Color="#08FFFFFF" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Border.BorderBrush>
 
-                    <!-- Khung chứa ảnh bìa -->
-                    <Border Grid.Column="0" Width="56" Height="56" CornerRadius="8" Background="#282828" ClipToBounds="True" Margin="0,0,12,0" VerticalAlignment="Center">
-                        <Grid>
-                            <!-- Icon dự phòng khi bài hát không có bìa -->
-                            <Path x:Name="PlaceholderIcon"
-                                  Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,7V13.26C10.42,12.79 9.68,12.5 8.88,12.5C7.29,12.5 6,13.79 6,15.38C6,16.97 7.29,18.25 8.88,18.25C10.47,18.25 11.75,16.97 11.75,15.38V9.5H16.5V7H11Z"
-                                  Fill="#55FFFFFF"
-                                  Stretch="Uniform"
-                                  Width="24" Height="24"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"/>
+                <!-- Mặt nạ OpacityMask đảm bảo mọi hiệu ứng ánh sáng bên trong không bao giờ bị tràn ra ngoài góc bo -->
+                <Border.OpacityMask>
+                    <VisualBrush>
+                        <VisualBrush.Visual>
+                            <Border Background="Black"
+                                    Width="{Binding ActualWidth, ElementName=GlassCard}"
+                                    Height="{Binding ActualHeight, ElementName=GlassCard}"
+                                    CornerRadius="{Binding CornerRadius, ElementName=GlassCard}"/>
+                        </VisualBrush.Visual>
+                    </VisualBrush>
+                </Border.OpacityMask>
 
-                            <!-- Ảnh bìa thực tế -->
-                            <Image x:Name="ImgThumbnail"
-                                   Stretch="UniformToFill"
-                                   RenderOptions.BitmapScalingMode="HighQuality"
-                                   Visibility="Collapsed"/>
-                        </Grid>
+                <Grid>
+                    <!-- 1. Ánh sáng Ambient dịu nhẹ phản chiếu từ ảnh bìa (Soft Ambient Lighting) -->
+                    <Rectangle x:Name="BgAmbientGlow" IsHitTestVisible="False">
+                        <Rectangle.Fill>
+                            <RadialGradientBrush x:Name="BgAmbientBrush" Center="0.16,0.5" GradientOrigin="0.16,0.5" RadiusX="0.75" RadiusY="0.95">
+                                <GradientStop x:Name="AmbientGradStop0" Color="#24465F8C" Offset="0.0"/>
+                                <GradientStop x:Name="AmbientGradStop1" Color="#0C283750" Offset="0.55"/>
+                                <GradientStop x:Name="AmbientGradStop2" Color="#00000000" Offset="1.0"/>
+                            </RadialGradientBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+
+                    <!-- 2. Hiệu ứng phản chiếu gương / bóng mờ kính tinh tế chuẩn Apple (Gentle Glossy Sheen) -->
+                    <Rectangle x:Name="GlossySheen" IsHitTestVisible="False" VerticalAlignment="Top" Height="45">
+                        <Rectangle.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#0DFFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#03FFFFFF" Offset="0.6"/>
+                                <GradientStop Color="#00FFFFFF" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+
+                    <!-- 3. Đường viền phản quang specular highlight ở mép trên (Top Specular Highlight) -->
+                    <Border IsHitTestVisible="False" VerticalAlignment="Top" Height="1.2" Margin="1,1,0,0">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#00FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#25FFFFFF" Offset="0.25"/>
+                                <GradientStop Color="#1EFFFFFF" Offset="0.75"/>
+                                <GradientStop Color="#00FFFFFF" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
                     </Border>
 
-                    <!-- Thông tin Track Title, Artist, Album -->
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
-                        <!-- Nhãn Spotify -->
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
-                            <Path x:Name="SpotifyIcon"
-                                  Data="M12 2C6.477 2 2 6.477 2 12c0 5.524 4.477 10 10 10 5.524 0 10-4.476 10-10 0-5.523-4.476-10-10-10zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.435-5.308-1.76-8.793-.963-.335.077-.67-.133-.746-.469-.077-.334.132-.67.467-.747 3.809-.871 7.077-.496 9.721 1.121.295.18.387.563.208.851zm1.224-2.724c-.226.367-.71.482-1.077.257-2.69-1.654-6.79-2.134-9.97-1.168-.413.125-.85-.107-.975-.521-.124-.413.108-.85.521-.975 3.633-1.102 8.147-.568 11.244 1.33.367.226.482.71.257 1.077zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71c-.494.15-1.018-.13-1.168-.624-.15-.493.13-1.018.624-1.168 3.532-1.073 9.404-.866 13.115 1.338.445.264.59.838.327 1.282-.264.444-.838.59-1.28.327z"
-                                  Fill="#1DB954"
-                                  Stretch="Uniform"
-                                  Width="12" Height="12"
-                                  Margin="0,0,5,0"
-                                  VerticalAlignment="Center"/>
-                            <TextBlock x:Name="TxtAppLabel" Text="SPOTIFY"
-                                       FontSize="9"
-                                       FontWeight="Bold"
-                                       Foreground="#1DB954"
-                                       VerticalAlignment="Center"/>
+                    <!-- 4. Dải màu Accent ở cạnh trái uốn lượn theo góc bo -->
+                    <Border x:Name="AccentBar" HorizontalAlignment="Left" Width="4" Background="#1DB954" CornerRadius="2,0,0,2"/>
+
+                    <!-- 5. Nội dung thông báo tự động co giãn theo kích thước -->
+                    <Grid x:Name="ContentGrid" Margin="14,10,14,10">
+                        <Grid.ColumnDefinitions>
+                            <!-- Ảnh bìa Thumbnail -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- Thông tin bài hát -->
+                            <ColumnDefinition Width="*" MinWidth="0"/>
+                            <!-- Nút điều khiển -->
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Khung chứa ảnh bìa -->
+                        <Border x:Name="ThumbnailBorder" Grid.Column="0" Width="64" Height="64" CornerRadius="10" Background="#282828" BorderBrush="#1FFFFFFF" BorderThickness="1" ClipToBounds="True" Margin="0,0,12,0" VerticalAlignment="Center">
+                            <Grid>
+                                <!-- Icon dự phòng khi bài hát không có bìa -->
+                                <Path x:Name="PlaceholderIcon"
+                                      Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,7V13.26C10.42,12.79 9.68,12.5 8.88,12.5C7.29,12.5 6,13.79 6,15.38C6,16.97 7.29,18.25 8.88,18.25C10.47,18.25 11.75,16.97 11.75,15.38V9.5H16.5V7H11Z"
+                                      Fill="#55FFFFFF"
+                                      Stretch="Uniform"
+                                      Width="28" Height="28"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+
+                                <!-- Ảnh bìa thực tế -->
+                                <Image x:Name="ImgThumbnail"
+                                       Stretch="UniformToFill"
+                                       RenderOptions.BitmapScalingMode="HighQuality"
+                                       Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Thông tin Track Title, Artist, Album -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,0">
+                            <!-- Nhãn Spotify -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <Path x:Name="SpotifyIcon"
+                                      Data="M12 2C6.477 2 2 6.477 2 12c0 5.524 4.477 10 10 10 5.524 0 10-4.476 10-10 0-5.523-4.476-10-10-10zm4.586 14.424c-.18.295-.563.387-.857.207-2.35-1.435-5.308-1.76-8.793-.963-.335.077-.67-.133-.746-.469-.077-.334.132-.67.467-.747 3.809-.871 7.077-.496 9.721 1.121.295.18.387.563.208.851zm1.224-2.724c-.226.367-.71.482-1.077.257-2.69-1.654-6.79-2.134-9.97-1.168-.413.125-.85-.107-.975-.521-.124-.413.108-.85.521-.975 3.633-1.102 8.147-.568 11.244 1.33.367.226.482.71.257 1.077zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71c-.494.15-1.018-.13-1.168-.624-.15-.493.13-1.018.624-1.168 3.532-1.073 9.404-.866 13.115 1.338.445.264.59.838.327 1.282-.264.444-.838.59-1.28.327z"
+                                      Fill="#1DB954"
+                                      Stretch="Uniform"
+                                      Width="14" Height="14"
+                                      Margin="0,0,6,0"
+                                      VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtAppLabel" Text="SPOTIFY"
+                                           FontSize="10.5"
+                                           FontWeight="Bold"
+                                           Foreground="#1DB954"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Tên bài hát (FontSize 15, rõ ràng nổi bật) -->
+                            <TextBlock x:Name="TxtTitle"
+                                       Text="Song Title"
+                                       FontWeight="SemiBold"
+                                       FontSize="15"
+                                       TextTrimming="CharacterEllipsis"
+                                       Foreground="#FFFFFF"
+                                       Margin="0,0,0,3"/>
+
+                            <!-- Tên nghệ sĩ / Album (FontSize 13) -->
+                            <TextBlock x:Name="TxtArtist"
+                                       Text="Artist Name"
+                                       FontSize="13"
+                                       TextTrimming="CharacterEllipsis"
+                                       Foreground="#B3B3B3"/>
                         </StackPanel>
 
-                        <!-- Tên bài hát -->
-                        <TextBlock x:Name="TxtTitle"
-                                   Text="Song Title"
-                                   FontWeight="SemiBold"
-                                   FontSize="13"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="#FFFFFF"
-                                   Margin="0,0,0,2"/>
+                        <!-- Cụm nút tương tác -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- Nút Skip Next (40x40 px) -->
+                            <Button x:Name="BtnSkip"
+                                    Style="{StaticResource MediaActionButtonStyle}"
+                                    ToolTip="Chuyển bài tiếp theo (Skip)"
+                                    Width="40" Height="40"
+                                    Click="BtnSkip_Click">
+                                <Path Data="M4,4 L4,16 L12,10 Z M12,4 L12,16 L20,10 Z M20,4 L22,4 L22,16 L20,16 Z"
+                                      Fill="#FFFFFF"
+                                      Stretch="Uniform"
+                                      Width="15" Height="15"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                            </Button>
 
-                        <!-- Tên nghệ sĩ / Album -->
-                        <TextBlock x:Name="TxtArtist"
-                                   Text="Artist Name"
-                                   FontSize="11.5"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="#B3B3B3"/>
-                    </StackPanel>
-
-                    <!-- Cụm nút tương tác -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Nút Skip Next -->
-                        <Button x:Name="BtnSkip"
-                                Style="{StaticResource MediaActionButtonStyle}"
-                                ToolTip="Chuyển bài tiếp theo (Skip)"
-                                Width="34" Height="34"
-                                Click="BtnSkip_Click">
-                            <Path Data="M4,4 L4,16 L12,10 Z M12,4 L12,16 L20,10 Z M20,4 L22,4 L22,16 L20,16 Z"
-                                  Fill="#FFFFFF"
-                                  Stretch="Uniform"
-                                  Width="13" Height="13"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"/>
-                        </Button>
-
-                        <!-- Nút Đóng Flyout -->
-                        <Button x:Name="BtnClose"
-                                Style="{StaticResource CloseButtonStyle}"
-                                ToolTip="Đóng thông báo"
-                                Width="24" Height="24"
-                                Margin="4,0,0,0"
-                                Click="BtnClose_Click">
-                            <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-                                  Fill="#66FFFFFF"
-                                  Stretch="Uniform"
-                                  Width="10" Height="10"/>
-                        </Button>
-                    </StackPanel>
+                            <!-- Nút Đóng Flyout (28x28 px) -->
+                            <Button x:Name="BtnClose"
+                                    Style="{StaticResource CloseButtonStyle}"
+                                    ToolTip="Đóng thông báo"
+                                    Width="28" Height="28"
+                                    Margin="6,0,0,0"
+                                    Click="BtnClose_Click">
+                                <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                      Fill="#66FFFFFF"
+                                      Stretch="Uniform"
+                                      Width="11" Height="11"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
-            </Grid>
+            </Border>
         </Border>
     </Grid>
 </Window>

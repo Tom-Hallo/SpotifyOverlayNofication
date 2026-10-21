@@ -6,6 +6,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
+using Brushes = System.Windows.Media.Brushes;
 using SpotifyNowPlaying.Models;
 using SpotifyNowPlaying.Services;
 
@@ -72,23 +73,121 @@ public partial class MainWindow : Window
     {
         _config = config;
         ApplyStyling();
+        CalculatePosition();
     }
 
     private void ApplyStyling()
     {
         try
         {
-            Width = _config.Style.Width;
-            Height = _config.Style.Height;
+            // 1. Kích thước Window tổng thể
+            double targetWidth = Math.Max(260, _config.Style.Width);
+            double targetHeight = Math.Max(60, _config.Style.Height);
 
-            // Bo góc
-            CardBorder.CornerRadius = new CornerRadius(_config.Style.CornerRadius);
+            Width = targetWidth;
+            Height = targetHeight;
 
-            // Màu nền Card
-            if (TryParseBrush(_config.Style.BackgroundColor, out var bgBrush))
+            // 2. Bo góc riêng biệt cho Left và Right
+            double leftRadius = _config.Style.GetLeftRadius();
+            double rightRadius = _config.Style.GetRightRadius();
+
+            // Cấu trúc CornerRadius trong WPF: TopLeft, TopRight, BottomRight, BottomLeft
+            var cr = new CornerRadius(leftRadius, rightRadius, rightRadius, leftRadius);
+            CardBorder.CornerRadius = cr;
+            GlassCard.CornerRadius = cr;
+
+            // 3. Xử lý viền kính và lề để áp sát hoặc tách rời cạnh màn hình tự nhiên
+            string alignment = _config.Position.Alignment?.Trim().ToLowerInvariant() ?? "topright";
+            bool isRightAligned = alignment.Contains("right");
+            bool isLeftAligned = alignment.Contains("left");
+
+            double leftMargin = 14;
+            double rightMargin = 0;
+
+            if (isRightAligned)
             {
-                CardBorder.Background = bgBrush;
+                // Nếu góc phải có bo tròn hoặc có lùi lề OffsetX > 0 -> cấp margin phải để không bị cắt bóng đổ DropShadow
+                rightMargin = (rightRadius > 0 && _config.Position.OffsetX > 0) ? 14 : 0;
+                leftMargin = 14;
+                double rightBorderThick = (rightRadius > 0 || _config.Position.OffsetX > 0) ? 1.2 : 0;
+                GlassCard.BorderThickness = new Thickness(1.2, 1.2, rightBorderThick, 1.2);
             }
+            else if (isLeftAligned)
+            {
+                leftMargin = (leftRadius > 0 && _config.Position.OffsetX > 0) ? 14 : 0;
+                rightMargin = 14;
+                double leftBorderThick = (leftRadius > 0 || _config.Position.OffsetX > 0) ? 1.2 : 0;
+                GlassCard.BorderThickness = new Thickness(leftBorderThick, 1.2, 1.2, 1.2);
+            }
+            else
+            {
+                leftMargin = 14;
+                rightMargin = 14;
+                GlassCard.BorderThickness = new Thickness(1.2);
+            }
+
+            CardBorder.Margin = new Thickness(leftMargin, 8, rightMargin, 8);
+
+            // Dải màu Accent Bar uốn lượn theo bo góc trái
+            AccentBar.CornerRadius = new CornerRadius(Math.Max(0, leftRadius - 2), 0, 0, Math.Max(0, leftRadius - 2));
+
+            // 4. Tự động co giãn (Responsive Layout) các phần tử theo Height để không bao giờ bị tràn/vỡ giao diện
+            double innerCardHeight = Math.Max(40, targetHeight - 16); // trừ margin trên dưới (8+8)
+            double vertPadding = Math.Clamp((innerCardHeight - 64) / 4, 4, 12);
+            ContentGrid.Margin = new Thickness(14, vertPadding, 14, vertPadding);
+
+            double maxThumb = Math.Max(32, innerCardHeight - (vertPadding * 2));
+            double thumbSize = Math.Clamp(maxThumb, 36, 76);
+            ThumbnailBorder.Width = thumbSize;
+            ThumbnailBorder.Height = thumbSize;
+            ThumbnailBorder.CornerRadius = new CornerRadius(Math.Clamp(thumbSize * 0.16, 5, 12));
+
+            // Tỉ lệ nút bấm theo chiều cao thẻ
+            double skipBtnSize = Math.Clamp(thumbSize * 0.58, 28, 40);
+            BtnSkip.Width = skipBtnSize;
+            BtnSkip.Height = skipBtnSize;
+
+            double closeBtnSize = Math.Clamp(skipBtnSize * 0.72, 22, 28);
+            BtnClose.Width = closeBtnSize;
+            BtnClose.Height = closeBtnSize;
+
+            // Kích thước font chữ co giãn linh hoạt
+            if (targetHeight < 80)
+            {
+                TxtTitle.FontSize = 12.5;
+                TxtArtist.FontSize = 10.5;
+                TxtAppLabel.FontSize = 8.5;
+                SpotifyIcon.Width = 11;
+                SpotifyIcon.Height = 11;
+            }
+            else if (targetHeight < 95)
+            {
+                TxtTitle.FontSize = 13.5;
+                TxtArtist.FontSize = 11.5;
+                TxtAppLabel.FontSize = 9.5;
+                SpotifyIcon.Width = 12;
+                SpotifyIcon.Height = 12;
+            }
+            else
+            {
+                TxtTitle.FontSize = 15;
+                TxtArtist.FontSize = 13;
+                TxtAppLabel.FontSize = 10;
+                SpotifyIcon.Width = 13;
+                SpotifyIcon.Height = 13;
+            }
+
+            // Chiều cao lớp gương bóng mờ chiếm ~45% chiều cao thẻ
+            GlossySheen.Height = Math.Max(18, innerCardHeight * 0.45);
+
+            // Nền trong suốt trên CardBorder để bóng đổ mềm ôm trọn GlassCard
+            CardBorder.Background = Brushes.Transparent;
+
+            // Áp dụng bảng màu nền mặc định ban đầu
+            var initialPalette = !string.IsNullOrWhiteSpace(_config.Style.BackgroundColor) && _config.Style.BackgroundColor != "#E6181818"
+                ? PaletteExtractor.CreateFromHex(_config.Style.BackgroundColor)
+                : AppleGlassPalette.Default;
+            ApplyPalette(initialPalette, animate: false);
 
             // Màu chữ
             if (TryParseBrush(_config.Style.TextColor, out var textBrush))
@@ -109,6 +208,49 @@ public partial class MainWindow : Window
         {
             System.Diagnostics.Debug.WriteLine($"[MainWindow] Lỗi áp dụng Style: {ex.Message}");
         }
+    }
+
+    private void ApplyPalette(AppleGlassPalette palette, bool animate)
+    {
+        if (!animate)
+        {
+            // Gán trực tiếp không qua animation (khi mới mở flyout hoặc khởi động)
+            BgGradStop0.BeginAnimation(GradientStop.ColorProperty, null);
+            BgGradStop1.BeginAnimation(GradientStop.ColorProperty, null);
+            BgGradStop2.BeginAnimation(GradientStop.ColorProperty, null);
+            AmbientGradStop0.BeginAnimation(GradientStop.ColorProperty, null);
+            AmbientGradStop1.BeginAnimation(GradientStop.ColorProperty, null);
+            BorderGradStop0.BeginAnimation(GradientStop.ColorProperty, null);
+            BorderGradStop1.BeginAnimation(GradientStop.ColorProperty, null);
+
+            BgGradStop0.Color = palette.BaseStart;
+            BgGradStop1.Color = palette.BaseMid;
+            BgGradStop2.Color = palette.BaseEnd;
+            AmbientGradStop0.Color = palette.AmbientGlow;
+            AmbientGradStop1.Color = palette.AmbientGlowMid;
+            BorderGradStop0.Color = palette.BorderTop;
+            BorderGradStop1.Color = palette.BorderBottom;
+        }
+        else
+        {
+            // Hiệu ứng chuyển tiếp màu mềm mại chuẩn Apple (450ms EaseOut)
+            var duration = TimeSpan.FromMilliseconds(450);
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+            AnimateColor(BgGradStop0, palette.BaseStart, duration, ease);
+            AnimateColor(BgGradStop1, palette.BaseMid, duration, ease);
+            AnimateColor(BgGradStop2, palette.BaseEnd, duration, ease);
+            AnimateColor(AmbientGradStop0, palette.AmbientGlow, duration, ease);
+            AnimateColor(AmbientGradStop1, palette.AmbientGlowMid, duration, ease);
+            AnimateColor(BorderGradStop0, palette.BorderTop, duration, ease);
+            AnimateColor(BorderGradStop1, palette.BorderBottom, duration, ease);
+        }
+    }
+
+    private static void AnimateColor(GradientStop stop, Color targetColor, TimeSpan duration, IEasingFunction ease)
+    {
+        var anim = new ColorAnimation(targetColor, duration) { EasingFunction = ease };
+        stop.BeginAnimation(GradientStop.ColorProperty, anim);
     }
 
     private static bool TryParseBrush(string hex, out SolidColorBrush brush)
@@ -159,6 +301,11 @@ public partial class MainWindow : Window
             ImgThumbnail.Visibility = Visibility.Collapsed;
             PlaceholderIcon.Visibility = Visibility.Visible;
         }
+
+        // Trích xuất màu chủ đạo từ ảnh bìa và áp dụng bảng màu Apple Glassmorphism
+        var targetPalette = PaletteExtractor.ExtractPalette(track.Thumbnail);
+        bool shouldAnimate = IsVisible && Opacity > 0.05 && !_isHiding;
+        ApplyPalette(targetPalette, animate: shouldAnimate);
 
         // Cập nhật vị trí cửa sổ theo config
         CalculatePosition();

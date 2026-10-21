@@ -1,7 +1,7 @@
 {
   "Position": {
     "Alignment": "TopRight",
-    "OffsetX": 20,
+    "OffsetX": 0,
     "OffsetY": 20,
     "CustomX": 0,
     "CustomY": 0
@@ -9,9 +9,10 @@
   "DisplayDurationMs": 4000,
   "AnimationDurationMs": 300,
   "Style": {
-    "Width": 340,
-    "Height": 90,
-    "CornerRadius": 12,
+    "Width": 410,
+    "Height": 100,
+    "CornerRadiusLeft": 24,
+    "CornerRadiusRight": 0,
     "BackgroundColor": "#E6181818",
     "TextColor": "#FFFFFF",
     "AccentColor": "#1DB954"
