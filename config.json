@@ -10,8 +10,8 @@
   "AnimationDurationMs": 300,
   "Style": {
     "Width": 410,
-    "Height": 100,
-    "CornerRadiusLeft": 24,
+    "Height": 90,
+    "CornerRadiusLeft": 12,
     "CornerRadiusRight": 0,
     "BackgroundColor": "#E6181818",
     "TextColor": "#FFFFFF",
